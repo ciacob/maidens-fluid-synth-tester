@@ -1,0 +1,229 @@
+<?xml version="1.0"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+         xmlns:s="library://ns.adobe.com/flex/spark"
+         xmlns:mx="library://ns.adobe.com/flex/mx"
+         minWidth="250" minHeight="80">
+
+    <fx:Metadata>
+        [Event(name="pianoKeyboardEvent", type="eu.claudius.iacob.ui.components.piano.PianoKeyboardEvent")]
+    </fx:Metadata>
+
+    <fx:Script>
+        <![CDATA[
+        import eu.claudius.iacob.ui.components.piano.PianoKeyboardEvent;
+        import eu.claudius.iacob.maidens.Colors;
+        import eu.claudius.iacob.maidens.Sizes;
+        import eu.claudius.iacob.maidens.skins.BlackPianoKeySkin;
+        import eu.claudius.iacob.maidens.skins.WhitePianoKeySkin;
+
+        import mx.core.IVisualElement;
+
+        import spark.components.ToggleButton;
+
+        /**
+         * Marks a key as pressed without actually producing sound.
+         * @param   keyId
+         *          String that uniquely identifies a key, such as 'A0', 'D' or 'DSh1'.
+         */
+        public function highlightKey(keyId:String):void {
+            if (keyId) {
+                if (keyId && (keyId in this)) {
+                    var key:ToggleButton = (this[keyId] as ToggleButton);
+                    if (key) {
+                        key.selected = true;
+                    }
+                }
+            }
+        }
+
+        /**
+         * Reverts the action of `highlightKey()`, i.e., removes the highlight from a key.
+         * @param   keyId
+         *          String that uniquely identifies a key, such as 'A0', 'D' or 'DSh1'.
+         */
+        public function unhighlightKey(keyId:String):void {
+            if (keyId) {
+                if (keyId && (keyId in this)) {
+                    var key:ToggleButton = (this[keyId] as ToggleButton);
+                    if (key) {
+                        key.selected = false;
+                    }
+                }
+            }
+        }
+
+        /**
+         * Removes highlight form all keys.
+         */
+        public function unhighlightAllKeys() : void {
+            for (var i : int = 0; i < keysHolderGroup.numElements; i++) {
+                var element : IVisualElement = keysHolderGroup.getElementAt(i);
+                if (element is ToggleButton) {
+                    var key : ToggleButton = (element as ToggleButton);
+                    key.selected = false;
+                }
+            }
+        }
+
+        private function _onKey(event:MouseEvent, keyCode:String, octaveOffset:int, isKeyDown:Boolean):void {
+            if (!isKeyDown) {
+
+                // We force the keys on the keyboard to behave as regular buttons. The "toggle"
+                // functionality is only needed when externally selecting the keys in response to
+                // playback annotation events.
+                var button:ToggleButton = (event.target as ToggleButton);
+                if (button) {
+                    button.selected = false;
+                }
+            }
+            dispatchEvent(new PianoKeyboardEvent(keyCode, octaveOffset, isKeyDown));
+        }
+        ]]>
+    </fx:Script>
+
+
+    <mx:Canvas width="100%"
+               styleName="thickText blockSection"
+               horizontalScrollPolicy="off"
+               verticalScrollPolicy="off"
+               height="{Sizes.SMALL_GAP + Sizes.KEYBOARD_WHITES_HEIGHT + Sizes.LARGE_GAP }">
+
+        <!-- Piano Keyboard UI -->
+        <s:Group top="{Sizes.SMALL_GAP}" bottom="{Sizes.LARGE_GAP}" horizontalCenter="23" id="keysHolderGroup">
+
+            <!-- EXTRA WHITE KEYS (LOWER) -->
+            <s:ToggleButton id="A0" name="A*" toolTip="A" skinClass="{WhitePianoKeySkin}"
+                            mouseDown="_onKey (event, 'A', -1,true)" mouseUp="_onKey (event, 'A', -1,false)"
+                            x="-46" y="0" width="23"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+            <s:ToggleButton id="B0" name="B*" toolTip="B" skinClass="{WhitePianoKeySkin}"
+                            mouseDown="_onKey (event, 'B', -1,true)" mouseUp="_onKey (event, 'B', -1,false)"
+                            x="-23" y="0" width="23"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <!-- EXTRA BLACK KEY (LOWER) -->
+            <s:ToggleButton id="ASh0" name="Asharp*" toolTip="Asharp / Bflat" skinClass="{BlackPianoKeySkin}"
+                            mouseDown="_onKey (event, 'A sharp', -1,true)" mouseUp="_onKey (event, 'A sharp', -1,false)"
+                            x="-26.25" y="0" width="13"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <!-- White keys  -->
+            <s:ToggleButton id="C" name="C" toolTip="C" skinClass="{WhitePianoKeySkin}"
+                            mouseDown="_onKey (event, 'C',0,true)" mouseUp="_onKey (event, 'C',0,false)"
+                            x="0" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="D" name="D" toolTip="D" skinClass="{WhitePianoKeySkin}"
+                            mouseDown="_onKey (event, 'D',0,true)" mouseUp="_onKey (event, 'D',0,false)"
+                            x="23" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="E" name="E" toolTip="E" skinClass="{WhitePianoKeySkin}"
+                            mouseDown="_onKey (event, 'E',0,true)" mouseUp="_onKey (event, 'E',0,false)"
+                            x="46" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="F" name="F" toolTip="F" skinClass="{WhitePianoKeySkin}"
+                            mouseDown="_onKey (event, 'F',0,true)" mouseUp="_onKey (event, 'F',0,false)"
+                            x="69" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="G" name="G" toolTip="G" skinClass="{WhitePianoKeySkin}"
+                            mouseDown="_onKey (event, 'G',0,true)" mouseUp="_onKey (event, 'G',0,false)"
+                            x="92" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="A" name="A" toolTip="A" skinClass="{WhitePianoKeySkin}"
+                            mouseDown="_onKey (event, 'A',0,true)" mouseUp="_onKey (event, 'A',0,false)"
+                            x="115" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="B" name="B" toolTip="B" skinClass="{WhitePianoKeySkin}"
+                            mouseDown="_onKey (event, 'B',0,true)" mouseUp="_onKey (event, 'B',0,false)"
+                            x="138" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+
+            <!-- Black keys  -->
+            <s:ToggleButton id="CSh" name="Csharp" toolTip="Csharp / Dflat" skinClass="{BlackPianoKeySkin}"
+                            mouseDown="_onKey (event, 'C sharp',0,true)" mouseUp="_onKey (event, 'C sharp',0,false)"
+                            x="14.33333" y="0" width="13"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="DSh" name="Dsharp" toolTip="Dsharp / Eflat" skinClass="{BlackPianoKeySkin}"
+                            mouseDown="_onKey (event, 'D sharp',0,true)" mouseUp="_onKey (event, 'D sharp',0,false)"
+                            x="41.66666" y="0" width="13"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="FSh" name="Fsharp" toolTip="Fsharp / Gflat" skinClass="{BlackPianoKeySkin}"
+                            mouseDown="_onKey (event, 'F sharp',0,true)" mouseUp="_onKey (event, 'F sharp',0,false)"
+                            x="82.25" y="0" width="13"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="GSh" name="Gsharp" toolTip="Gsharp / Aflat" skinClass="{BlackPianoKeySkin}"
+                            mouseDown="_onKey (event, 'G sharp',0,true)" mouseUp="_onKey (event, 'G sharp',0,false)"
+                            x="108.25" y="0" width="13"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="ASh" name="Asharp" toolTip="Asharp / Bflat" skinClass="{BlackPianoKeySkin}"
+                            mouseDown="_onKey (event, 'A sharp',0,true)" mouseUp="_onKey (event, 'A sharp',0,false)"
+                            x="134.75" y="0" width="13"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <!-- EXTRA WHITE KEYS (UPPER) -->
+            <s:ToggleButton id="C1" name="C*" toolTip="C" skinClass="{WhitePianoKeySkin}"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            mouseDown="_onKey (event, 'C', 1,true)" mouseUp="_onKey (event, 'C', 1,false)"
+                            x="161" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+            <s:ToggleButton id="D1" name="D*" toolTip="D" skinClass="{WhitePianoKeySkin}"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            mouseDown="_onKey (event, 'D', 1,true)" mouseUp="_onKey (event, 'D', 1,false)"
+                            x="184" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+            <s:ToggleButton id="E1" name="E*" toolTip="E" skinClass="{WhitePianoKeySkin}"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            mouseDown="_onKey (event, 'E', 1,true)" mouseUp="_onKey (event, 'E', 1,false)"
+                            x="207" y="0" width="23"
+                            height="{Sizes.KEYBOARD_WHITES_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <!-- EXTRA BLACK KEYS (UPPER) -->
+            <s:ToggleButton id="CSh1" name="Csharp*" toolTip="Csharp / Dflat" skinClass="{BlackPianoKeySkin}"
+                            mouseDown="_onKey (event, 'C sharp', 1,true)" mouseUp="_onKey (event, 'C sharp', 1,false)"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            x="175.33333" y="0" width="13"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+
+            <s:ToggleButton id="DSh1" name="Dsharp*" toolTip="Dsharp / Eflat" skinClass="{BlackPianoKeySkin}"
+                            alpha="{Colors.EXTRA_PIANO_KEYS_ALPHA}"
+                            mouseDown="_onKey (event, 'D sharp', 1,true)" mouseUp="_onKey (event, 'D sharp', 1,false)"
+                            x="202.66666" y="0" width="13"
+                            height="{Sizes.KEYBOARD_BLACKS_HEIGHT}"
+                            useHandCursor="true" buttonMode="true"/>
+        </s:Group>
+
+    </mx:Canvas>
+
+</s:Group>

@@ -1,0 +1,613 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication
+        xmlns:fx="http://ns.adobe.com/mxml/2009"
+        xmlns:s="library://ns.adobe.com/flex/spark"
+        xmlns:mx="library://ns.adobe.com/flex/mx"
+        xmlns:piano="eu.claudius.iacob.ui.components.piano.*"
+        frameRate="30"
+        initialize="_onInitialize (event)"
+        doubleClickEnabled="true">
+    <s:layout>
+        <s:VerticalLayout padding="25" horizontalAlign="center"/>
+    </s:layout>
+
+    <fx:Script>
+    <![CDATA[
+        import eu.claudius.iacob.synth.constants.OperationTypes;
+        import eu.claudius.iacob.synth.constants.SynthCommon;
+        import eu.claudius.iacob.synth.events.PlaybackAnnotationEvent;
+        import eu.claudius.iacob.synth.events.PlaybackPositionEvent;
+        import eu.claudius.iacob.synth.events.SystemStatusEvent;
+        import eu.claudius.iacob.synth.sound.generation.SynthProxy;
+        import eu.claudius.iacob.synth.sound.map.AnnotationAction;
+        import eu.claudius.iacob.synth.sound.map.AnnotationTask;
+        import eu.claudius.iacob.synth.sound.map.NoteAttackInfo;
+        import eu.claudius.iacob.synth.sound.map.NoteTrackObject;
+        import eu.claudius.iacob.synth.sound.map.ScoreItemAnnotation;
+        import eu.claudius.iacob.synth.sound.map.Timeline;
+        import eu.claudius.iacob.synth.sound.map.Track;
+        import eu.claudius.iacob.synth.utils.AudioGraphics;
+        import eu.claudius.iacob.synth.utils.AudioUtils;
+        import eu.claudius.iacob.synth.utils.AudioUtils;
+        import eu.claudius.iacob.synth.utils.FileUtils;
+        import eu.claudius.iacob.synth.utils.PresetDescriptor;
+        import eu.claudius.iacob.synth.utils.ProgressReport;
+        import eu.claudius.iacob.synth.utils.SoundLoader;
+        import eu.claudius.iacob.synth.utils.StreamingUtils;
+
+        import mx.events.FlexEvent;
+        import mx.events.ResizeEvent;
+
+        import ro.ciacob.desktop.io.RawDiskReader;
+        import ro.ciacob.desktop.io.RawDiskWritter;
+        import ro.ciacob.utils.Patterns;
+        import ro.ciacob.utils.Strings;
+
+        private static const AUDIO_WORKER_FILE:String = 'd:/_DEV_/_GIT_/claudius-iacob-eu/maidens-fluid-synth-library/audio-worker/bin/audio-worker.swf';
+
+        private static var _synthProxy:SynthProxy;
+        private static var _waveformWidth:Number;
+        private static var _prerenderedSamples:ByteArray;
+        private static var _workerBytes:ByteArray;
+        private static var _timeLine:Timeline;
+        private static var _soundLoader:SoundLoader;
+        private static var _loadedSounds:Object;
+        private static var _testTracks1:Array;
+        private static var _testTracks2:Array;
+        private static var _testTracks3:Array;
+        private static var _audioStreamer:StreamingUtils;
+
+        public static function get testTracks1():Array {
+            if (!_testTracks1) {
+                var piano0:Track = new Track('Piano', 0);
+                var c_i7:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(72, 0.6, 0, 0, 1, false, false)]);
+                var c_i8:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(72, 0.3, 0, 0, 1, false, false)]);
+                var g2:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(79, 1)]);
+                piano0.addObject(c_i7, 100, 600);
+                piano0.addObject(c_i8, 750, 220);
+                piano0.addObject(g2, 1000, 3000);
+
+                var annotation1:Track = new Track('Annotation 1', 0);
+                var c_i7_a:ScoreItemAnnotation = new ScoreItemAnnotation('C');
+                var c_i8_a:ScoreItemAnnotation = new ScoreItemAnnotation('C');
+                var g2_a:ScoreItemAnnotation = new ScoreItemAnnotation('G');
+                annotation1.addObject(c_i7_a, 100, 600);
+                annotation1.addObject(c_i8_a, 750, 220);
+                annotation1.addObject(g2_a, 1000, 3000);
+
+                var flute:Track = new Track('Flute', 73);
+                var Cmajor:NoteTrackObject = new NoteTrackObject(
+                        new <NoteAttackInfo>[
+                            new NoteAttackInfo(60),
+                            new NoteAttackInfo(64, 2, 50),
+                            new NoteAttackInfo(67, 1, 100)
+                        ]
+                );
+                var Ddim:NoteTrackObject = new NoteTrackObject(
+                        new <NoteAttackInfo>[
+                            new NoteAttackInfo(60),
+                            new NoteAttackInfo(62, 2, 50),
+                            new NoteAttackInfo(65, 1, 100),
+                            new NoteAttackInfo(68, 1.5, 150)
+                        ]
+                );
+                flute.addObject(Cmajor, 1000, 1000);
+                flute.addObject(Ddim, 3000, 1000);
+
+                var annotation2:Track = new Track('Annotation 2', 0);
+                var annotation3:Track = new Track('Annotation 3', 0);
+                var annotation4:Track = new Track('Annotation 4', 0);
+                var annotation5:Track = new Track('Annotation 5', 0);
+                var c_19_a:ScoreItemAnnotation = new ScoreItemAnnotation('C');
+                var e_a:ScoreItemAnnotation = new ScoreItemAnnotation('E');
+                var g3_a:ScoreItemAnnotation = new ScoreItemAnnotation('G');
+                annotation2.addObject(c_19_a, 1000, 1000);
+                annotation3.addObject(e_a, 1000, 1000);
+                annotation4.addObject(g3_a, 1000, 1000);
+
+                var c_20_a:ScoreItemAnnotation = new ScoreItemAnnotation('C');
+                var d_a:ScoreItemAnnotation = new ScoreItemAnnotation('D');
+                var f_a:ScoreItemAnnotation = new ScoreItemAnnotation('F');
+                var gsh_a:ScoreItemAnnotation = new ScoreItemAnnotation('GSh');
+                annotation2.addObject(c_20_a, 3000, 1000);
+                annotation3.addObject(d_a, 3000, 1000);
+                annotation4.addObject(f_a, 3000, 1000);
+                annotation5.addObject(gsh_a, 3000, 1000);
+
+                var piano:Track = new Track('Piano', 0);
+                var c_i1:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(48, 0.3)]);
+                var c_i2:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(48, 0.2)]);
+                var c_i3:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(48, 0.7)]);
+                var c_i4:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(48, 0.4)]);
+                var c_i5:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(48, 0.2)]);
+                var c_i6:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(48, 0.6)]);
+                piano.addObject(c_i1, 1333, 333);
+                piano.addObject(c_i2, 1666, 333);
+                piano.addObject(c_i3, 2000, 333);
+                piano.addObject(c_i4, 2333, 333);
+                piano.addObject(c_i5, 2666, 333);
+                piano.addObject(c_i6, 3000, 2000);
+
+                _timeLine.empty();
+                _timeLine.addTrack(piano0);
+                _timeLine.addTrack(flute);
+                _timeLine.addTrack(piano);
+                _timeLine.addTrack(annotation1);
+                _timeLine.addTrack(annotation2);
+                _timeLine.addTrack(annotation3);
+                _timeLine.addTrack(annotation4);
+                _timeLine.addTrack(annotation5);
+                _testTracks1 = _timeLine.readOn();
+            }
+            return _testTracks1;
+        }
+
+        public static function get testTracks2():Array {
+            if (!_testTracks2) {
+                var vln:Track = new Track('Violin', 40);
+                var c:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(60)]);
+                var g:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(67)]);
+                var f:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(65, 10)]);
+                var eb:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(63)]);
+                var d:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(62)]);
+                var c_2:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(60)]);
+
+                vln.addObject(c, 0, 1000);
+                vln.addObject(g, 1000, 1000);
+                vln.addObject(f, 2000, 1000);
+                vln.addObject(eb, 3000, 1000);
+                vln.addObject(d, 4000, 1000);
+                vln.addObject(c_2, 5000, 2000);
+
+                _timeLine.empty();
+                _timeLine.addTrack(vln);
+                _testTracks2 = _timeLine.readOn();
+            }
+            return _testTracks2;
+        }
+
+        public static function get testTracks3():Array {
+            if (!_testTracks3) {
+                var organ:Track = new Track('Organ', 19);
+                var c:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(72, 1, 0, 0, 1, false, false)]);
+                var d:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(74, 1, 0, 0, 1, false, true, 'xxx')]);
+                var d_2:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(74, 1, 0, 0, 1, true, false, 'xxx')]);
+                var b:NoteTrackObject = new NoteTrackObject(new <NoteAttackInfo>[new NoteAttackInfo(71, 1, 0, 0, 1, false, false)]);
+
+                organ.addObject(c, 0, 1000);
+                organ.addObject(d, 1000, 1000);
+                organ.addObject(d_2, 2000, 1000);
+                organ.addObject(b, 3000, 1000);
+
+                _timeLine.empty();
+                _timeLine.addTrack(organ);
+                _testTracks3 = _timeLine.readOn();
+            }
+            return _testTracks3;
+        }
+
+        private function print(...args):void {
+            var msg:String = args.join(' ') + '\n';
+            monitor.text += msg;
+            monitor.verticalScrollPosition = monitor.textHeight;
+            trace(msg);
+        }
+
+        /**
+         * Stage-two constructor-like function for MXML classes. At this stage,
+         * components are initialized but not configured, and not rendered yet.
+         */
+        private function _onInitialize(event:FlexEvent):void {
+            addEventListener(FlexEvent.UPDATE_COMPLETE, _onUpdateComplete);
+            _timeLine = new Timeline;
+            _prerenderedSamples = AudioUtils.makeSamplesStorage();
+            _synthProxy = new SynthProxy(_prerenderedSamples);
+            _synthProxy.addEventListener(PlaybackAnnotationEvent.PLAYBACK_ANNOTATION_EVENT, _onPlaybackAnnotation);
+            _synthProxy.addEventListener(PlaybackPositionEvent.PLAYBACK_POSITION_EVENT, _onPLayBackPositionChanged);
+            _synthProxy.addEventListener(SystemStatusEvent.REPORT_EVENT, _onReportReceived);
+            _soundLoader = new SoundLoader;
+        }
+
+        /**
+         * Stage-four constructor-like function for MXML classes. At this stage, components
+         * are initialized, configured and rendered.
+         * @param event
+         */
+        private function _onUpdateComplete(event:FlexEvent):void {
+            removeEventListener(FlexEvent.UPDATE_COMPLETE, _onUpdateComplete);
+            _waveformWidth = (waveFormCanvas.width - playHead.width);
+        }
+
+        private function _onPlaybackAnnotation(event:PlaybackAnnotationEvent):void {
+            var payload:AnnotationTask = (event.payload as AnnotationTask);
+            var actions:Vector.<AnnotationAction>;
+            if (payload && (actions = payload.actions) && actions.length > 0) {
+                var i:int;
+                var action:AnnotationAction;
+                var actionType:String;
+                var actionId:String;
+                var numActions:uint = actions.length;
+                for (i = 0; i < numActions; i++) {
+                    action = (actions[i] as AnnotationAction);
+                    actionType = action.type;
+                    actionId = action.targetId;
+                    switch (actionType) {
+                        case OperationTypes.TYPE_HIGHLIGHT_SCORE_ITEM:
+                            pianoKeyboardUi.highlightKey(actionId);
+                            break;
+                        case OperationTypes.TYPE_UNHIGHLIGHT_SCORE_ITEM:
+                            pianoKeyboardUi.unhighlightKey(actionId);
+                            break;
+                    }
+                }
+            }
+        }
+
+        private function _onWaveFormCanvasResized(event:ResizeEvent):void {
+            _updateWaveform();
+            _waveformWidth = (waveFormCanvas.width - playHead.width);
+        }
+
+        private function _onPLayBackPositionChanged(event:PlaybackPositionEvent):void {
+            var w:Number = (_waveformWidth - playHead.width);
+            playHead.x = (w * event.percent);
+        }
+
+        private function _onReportReceived(event:SystemStatusEvent):void {
+            var dispatcher : IEventDispatcher = (event.target as IEventDispatcher);
+            var report:ProgressReport = event.report;
+
+            trace ('----------------------\nDispatcher:' + (dispatcher as Object).constructor, '|', dispatcher);
+            trace(report);
+            if (report.state == ProgressReport.STATE_READY_TO_RENDER) {
+                _loadedSounds = _soundLoader.sounds;
+            }
+        }
+
+        private function _onPreloadSoundsClicked(event:MouseEvent):void {
+            print('preloading sound fonts...');
+            _soundLoader.addEventListener(SystemStatusEvent.REPORT_EVENT, _onReportReceived);
+            _soundLoader.preloadSounds(new <PresetDescriptor>[
+                new PresetDescriptor(0, 'Piano'),
+                new PresetDescriptor(40, 'Violin'),
+                new PresetDescriptor(73, 'Flute'),
+                new PresetDescriptor(60, 'French Horns')
+            ]);
+
+        }
+
+        private function _onPreloadSounds2Clicked(event:MouseEvent):void {
+            print('preloading sound fonts (2)...');
+            _soundLoader.addEventListener(SystemStatusEvent.REPORT_EVENT, _onReportReceived);
+            _soundLoader.preloadSounds(new <PresetDescriptor>[
+                new PresetDescriptor(0, 'Piano'),
+                new PresetDescriptor(40, 'Violin'),
+                new PresetDescriptor(41, 'Viola'),
+                new PresetDescriptor(42, 'Cello'),
+                new PresetDescriptor(73, 'Flute'),
+                new PresetDescriptor(60, 'French Horns'),
+                new PresetDescriptor(19, 'Organ')
+            ]);
+        }
+
+        private function _onPreloadSounds3Clicked(event:MouseEvent):void {
+            print('preloading sound fonts (3)...');
+            _soundLoader.addEventListener(SystemStatusEvent.REPORT_EVENT, _onReportReceived);
+            _soundLoader.preloadSounds(new <PresetDescriptor>[
+                new PresetDescriptor(42, '42'),
+                new PresetDescriptor(46, '46'),
+                new PresetDescriptor(69, '69'),
+                new PresetDescriptor(73, '73')
+            ]);
+        }
+
+        private function _onPrerenderAudioClicked(event:MouseEvent):void {
+            print('pre-rendering audio (1)...');
+
+            var before:Date = new Date;
+
+            _synthProxy.preRenderAudio(_loadedSounds, testTracks1);
+
+            var after:Date = new Date;
+            var timeLineDuration:uint = 5000;
+            var renderDuration:uint = after.getTime() - before.getTime();
+
+            print('Rendered', timeLineDuration, 'msecs. in', renderDuration, 'msecs. Speed:', (timeLineDuration / renderDuration).toPrecision(2) + 'X.');
+            print('Done.');
+            print('Drawing audio...');
+
+            _synthProxy.computeCachedAudioLength();
+            _updateWaveform();
+
+            print('Done.');
+        }
+
+        private function _onPrerenderAudio2Clicked(event:MouseEvent):void {
+            print('pre-rendering audio (2)...');
+            _synthProxy.preRenderAudio(_loadedSounds, testTracks2);
+            _updateWaveform();
+        }
+
+        private function _onPrerenderAudio3Clicked(event:MouseEvent):void {
+            print('pre-rendering audio (3)...');
+            _synthProxy.preRenderAudio(_loadedSounds, testTracks3);
+            _updateWaveform();
+        }
+
+        private function _onRegisterLabelsClicked(event:MouseEvent):void {
+            print('registering labels..');
+
+            print('"A" -> 1000');
+            _timeLine.setLabel('A', 1000);
+            print('"B" -> 2000');
+            _timeLine.setLabel('B', 2000);
+            print('"C" -> 3000');
+            _timeLine.setLabel('C', 3000);
+        }
+
+        private function _onUnregisterLabelsClicked(event:MouseEvent):void {
+            print('un-registering labels..');
+            _timeLine.clearAllLabels();
+            print('DONE');
+        }
+
+        private function _onSetStartClicked(event:MouseEvent, label:String):void {
+            print('Setting start to label', label + '...');
+            var result:Boolean = _timeLine.setReadStartLabel(label);
+            print('result:', result);
+        }
+
+        private function _onSetEndClicked(event:MouseEvent, label:String):void {
+            print('Setting end to label', label + '...');
+            var result:Boolean = _timeLine.setReadEndLabel(label);
+            print('result:', result);
+        }
+
+        private function _onSetFullReadClicked(event:MouseEvent):void {
+            print('Setting full read...');
+            _timeLine.setFullRead();
+        }
+
+        private function _onStreamingEvent(event:SystemStatusEvent):void {
+            var report:ProgressReport = event.report;
+            trace('Streaming Utils Progress Report:', report);
+            _synthProxy.computeCachedAudioLength();
+            _updateWaveform();
+        }
+
+        private function _onStreamAudioClicked(event:MouseEvent):void {
+            print('Streaming testTracks1...');
+            _ensureWorkerBytes(_doStreamAudio, testTracks1);
+        }
+
+        private function _onStreamAudio2Clicked(event:MouseEvent):void {
+            print('Streaming testTracks2...');
+            _ensureWorkerBytes(_doStreamAudio, testTracks2);
+        }
+
+        private function _onStreamAudio3Clicked(event:MouseEvent):void {
+            print('Streaming testTracks3...');
+            _ensureWorkerBytes(_doStreamAudio, testTracks3);
+        }
+
+        private function _onStreamAudio4Clicked(event:MouseEvent):void {
+            print('Streaming testTracks4...');
+            var reader:RawDiskReader = new RawDiskReader;
+            var tracksBytes:ByteArray = (reader.readContent(File.desktopDirectory
+                    .resolvePath('MAIDENS_TESTS/55f143de-2958-4eb5-b1a1-bc053999f8f9.test-tracks')) as ByteArray);
+            tracksBytes.position = 0;
+            var tracks:Array = (tracksBytes.readObject() as Array);
+            _ensureWorkerBytes(_doStreamAudio, tracks);
+        }
+
+        private function _ensureWorkerBytes(callback:Function, ...callbackArgs):void {
+
+            // Load the worker class bytes if needed, then launch the streaming utils.
+            if (!_workerBytes) {
+                var fileStream:FileStream = new FileStream;
+                var workerSwf:File = new File(AUDIO_WORKER_FILE);
+                fileStream.addEventListener(IOErrorEvent.IO_ERROR, function (event:IOErrorEvent):void {
+                    trace('CANNOT OPEN', workerSwf.nativePath + '. Error was:\n' + event.text);
+                });
+                fileStream.addEventListener(Event.COMPLETE, function (event:Event):void {
+                    trace('completed loading file', workerSwf.nativePath);
+                    _workerBytes = new ByteArray;
+                    fileStream.readBytes(_workerBytes, 0, fileStream.bytesAvailable);
+                    _workerBytes.position = 0;
+                    trace('Read', _workerBytes.length, 'bytes from', workerSwf.nativePath);
+                    callbackArgs.unshift(_workerBytes);
+                    callback.apply(this, callbackArgs);
+                });
+                fileStream.openAsync(workerSwf, FileMode.READ);
+            } else {
+
+                // ..or immediately launch the streaming utils if the worker class bytes are already loaded and cached.
+                callbackArgs.unshift(_workerBytes);
+                callback.apply(this, callbackArgs);
+            }
+        }
+
+        private function _doStreamAudio(workerBytes:ByteArray, tracks:Array):void {
+            _audioStreamer = new StreamingUtils(workerBytes, _synthProxy, true, true);
+            _audioStreamer.minBufferSize = 1000;
+            _audioStreamer.addEventListener(SystemStatusEvent.REPORT_EVENT, _onStreamingEvent);
+            _audioStreamer.stream(_loadedSounds, tracks);
+        }
+
+        private function _updateWaveform():void {
+            if (_prerenderedSamples && waveFormCanvas) {
+                AudioGraphics.drawSimplifiedWaveForm(_prerenderedSamples, waveFormCanvas);
+            }
+        }
+
+        private function _onPlayClicked(event:MouseEvent):void {
+            print('playing back audio...');
+            _synthProxy.invalidateAudioCache();
+            _synthProxy.playBackPrerenderedAudio();
+        }
+
+        private function _onPauseClicked(event:MouseEvent):void {
+            print('pausing audio...');
+            _synthProxy.stopPrerenderedPlayback();
+        }
+
+        private function _onStopClicked(event:MouseEvent):void {
+            print('stopping audio...');
+            _synthProxy.stopPrerenderedPlayback(true);
+            pianoKeyboardUi.unhighlightAllKeys();
+        }
+
+        private function _onPlayStreamedClicked(event:MouseEvent):void {
+            print('playing back streamed audio...');
+            //_synthProxy.playBackStreamedAudio();
+        }
+
+        private function _onStopStreamedClicked(event:MouseEvent):void {
+            print('stopping streamed audio...');
+            _synthProxy.stopStreamedPlayback(true);
+        }
+
+        private function _onSaveToDiskClicked(event:MouseEvent):void {
+            print('Saving to disk...');
+            var fileUtils:FileUtils = new FileUtils;
+            fileUtils.addEventListener(SystemStatusEvent.REPORT_EVENT, _onReportReceived);
+            fileUtils.dumpToDisk(_prerenderedSamples,
+                    File.desktopDirectory.resolvePath((saveToDiskAddress.text || Strings.UUID) + '.wav'));
+        }
+
+        private function _onStreamAndSaveToDiskClicked (event:MouseEvent):void {
+            print ('Streaming and saving to disk...');
+            var reader:RawDiskReader = new RawDiskReader;
+            var workerSwf:File = new File(AUDIO_WORKER_FILE);
+            var workerBytes : ByteArray = (reader.readContent(workerSwf) as ByteArray);
+            _audioStreamer = new StreamingUtils(workerBytes, _synthProxy, true, true);
+
+            var fileUtils:FileUtils = new FileUtils;
+
+            fileUtils.addEventListener(SystemStatusEvent.REPORT_EVENT, _onReportReceived);
+            var tracksBytes:ByteArray = (reader.readContent(File.desktopDirectory
+                    .resolvePath('MAIDENS_TESTS/55f143de-2958-4eb5-b1a1-bc053999f8f9.test-tracks')) as ByteArray);
+            tracksBytes.position = 0;
+            var tracks:Array = (tracksBytes.readObject() as Array);
+
+            fileUtils.streamToDisk(_audioStreamer, _loadedSounds, tracks,
+                    File.desktopDirectory.resolvePath((saveToDiskAddress.text || Strings.UUID) + '.wav'));
+        }
+        ]]>
+</fx:Script>
+    <s:Group width="100%">
+        <s:layout>
+            <s:HorizontalLayout/>
+        </s:layout>
+        <mx:TextArea width="100%" height="100" id="monitor"/>
+    </s:Group>
+
+    <s:Group width="100%">
+        <s:layout>
+            <s:VerticalLayout/>
+        </s:layout>
+
+        <piano:PianoKeyboard id="pianoKeyboardUi"/>
+        <mx:HRule width="100%"/>
+
+        <s:Group width="100%">
+            <s:layout>
+                <s:TileLayout requestedColumnCount="4" paddingLeft="10" paddingRight="10" paddingBottom="15"/>
+            </s:layout>
+            <mx:Button label="Preload Sounds" click="_onPreloadSoundsClicked(event)"/>
+            <mx:Button label="Preload Sounds (2)" click="_onPreloadSounds2Clicked(event)"/>
+            <mx:Button label="Preload Sounds (3)" click="_onPreloadSounds3Clicked(event)"/>
+        </s:Group>
+
+        <s:Group width="100%">
+            <s:layout>
+                <s:TileLayout requestedColumnCount="4" paddingLeft="10" paddingRight="10" paddingBottom="15"/>
+            </s:layout>
+            <mx:Button label="Pre-render Audio" click="_onPrerenderAudioClicked(event)"/>
+            <mx:Button label="Pre-render Audio (2)" click="_onPrerenderAudio2Clicked(event)"/>
+            <mx:Button label="Pre-render Audio (3)" click="_onPrerenderAudio3Clicked(event)"/>
+        </s:Group>
+
+        <s:Group width="100%">
+            <s:layout>
+                <s:TileLayout requestedColumnCount="4" paddingLeft="10" paddingRight="10"/>
+            </s:layout>
+            <mx:Button label="Register labels (A, B &amp;amp; C)" click="_onRegisterLabelsClicked(event)"/>
+            <mx:Button label="Unregister labels" click="_onUnregisterLabelsClicked(event)"/>
+        </s:Group>
+
+        <s:Group width="100%">
+            <s:layout>
+                <s:TileLayout requestedColumnCount="4" paddingLeft="10" paddingRight="10"/>
+            </s:layout>
+            <mx:Button label="Set start label A (1000)" click="_onSetStartClicked(event, 'A')"/>
+            <mx:Button label="Set start label B (2000)" click="_onSetStartClicked(event, 'B')"/>
+            <mx:Button label="Set start label C (3000)" click="_onSetStartClicked(event, 'C')"/>
+            <mx:Button label="Set full read" click="_onSetFullReadClicked(event)"/>
+        </s:Group>
+        <s:Group width="100%">
+            <s:layout>
+                <s:TileLayout requestedColumnCount="4" paddingLeft="10" paddingRight="10" paddingBottom="15"/>
+            </s:layout>
+            <mx:Button label="Set end label A (1000)" click="_onSetEndClicked(event, 'A')"/>
+            <mx:Button label="Set end label B (2000)" click="_onSetEndClicked(event, 'B')"/>
+            <mx:Button label="Set end label C (3000)" click="_onSetEndClicked(event, 'C')"/>
+        </s:Group>
+
+        <s:Group width="100%">
+            <s:layout>
+                <s:TileLayout requestedColumnCount="4" paddingLeft="10" paddingRight="10"/>
+            </s:layout>
+            <mx:Button label="Stream audio" click="_onStreamAudioClicked(event)"/>
+            <mx:Button label="Stream audio (2)" click="_onStreamAudio2Clicked(event)"/>
+            <mx:Button label="Stream audio (3)" click="_onStreamAudio3Clicked(event)"/>
+            <mx:Button label="Stream audio (4)" click="_onStreamAudio4Clicked(event)"/>
+        </s:Group>
+
+        <s:Group width="100%">
+            <s:layout>
+                <s:TileLayout requestedColumnCount="4" paddingLeft="10" paddingRight="10"/>
+            </s:layout>
+            <mx:Button label="Play" click="_onPlayClicked(event)"/>
+            <mx:Button label="Pause" click="_onPauseClicked(event)"/>
+            <mx:Button label="Stop" click="_onStopClicked(event)"/>
+        </s:Group>
+
+        <s:Group width="100%">
+            <s:layout>
+                <s:TileLayout requestedColumnCount="4" paddingLeft="10" paddingRight="10" paddingBottom="15"/>
+            </s:layout>
+            <mx:Button label="Play stream" click="_onPlayStreamedClicked(event)"/>
+            <mx:Button label="Stop stream" click="_onStopStreamedClicked(event)"/>
+        </s:Group>
+
+        <s:Group width="100%">
+            <s:layout>
+                <s:HorizontalLayout paddingLeft="10" paddingRight="10"/>
+            </s:layout>
+            <s:TextInput borderVisible="true" breakOpportunity="none" typicalText="{File.desktopDirectory}"
+                         restrict="{Patterns.ALL_EXCEPT_FILENAME_UNSAFE}" id="saveToDiskAddress"
+                         width="220"/>
+            <mx:Button label="Save to disk" click="_onSaveToDiskClicked(event)"/>
+            <mx:Button label="Stream and save to disk" click="_onStreamAndSaveToDiskClicked(event)"/>
+        </s:Group>
+
+        <s:Group width="100%" height="100">
+            <s:layout>
+                <s:BasicLayout/>
+            </s:layout>
+            <mx:Canvas width="100%" height="100%" id="waveFormCanvas"
+                       resize="_onWaveFormCanvasResized(event)"/>
+            <s:Rect y="0" x="0" width="2" height="100%" id="playHead">
+                <s:stroke>
+                    <mx:SolidColorStroke color="#ffffff" weight="1"/>
+                </s:stroke>
+                <s:fill>
+                    <mx:SolidColor color="#000000"/>
+                </s:fill>
+            </s:Rect>
+        </s:Group>
+
+    </s:Group>
+
+</s:WindowedApplication>
